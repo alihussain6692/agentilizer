@@ -1,0 +1,24 @@
+{
+  "template_id": 535,
+  "template_name": "Receive updates on a new invoice via Invoice Ninja",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "Invoice Ninja Trigger",
+      "type": "n8n-nodes-base.invoiceNinjaTrigger",
+      "position": [
+        890,
+        400
+      ],
+      "webhookId": "97be21b3-ebf5-48cf-b291-5d954657a544",
+      "parameters": {
+        "event": "create_invoice"
+      },
+      "credentials": {
+        "invoiceNinjaApi": "invoice_ninja_creds"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {}
+}

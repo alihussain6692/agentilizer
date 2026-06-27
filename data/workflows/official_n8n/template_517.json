@@ -1,0 +1,31 @@
+{
+  "template_id": 517,
+  "template_name": "Get new time entries from Toggl",
+  "source": "n8n_official_api",
+  "id": "138",
+  "name": "Get new time entries from Toggl",
+  "nodes": [
+    {
+      "name": "Toggl",
+      "type": "n8n-nodes-base.togglTrigger",
+      "position": [
+        650,
+        250
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {}
+          ]
+        }
+      },
+      "credentials": {
+        "togglApi": ""
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {}
+}

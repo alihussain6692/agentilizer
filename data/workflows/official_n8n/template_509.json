@@ -1,0 +1,26 @@
+{
+  "template_id": 509,
+  "template_name": "Receive updates for AWS SNS Events",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "AWS-SNS-Trigger",
+      "type": "n8n-nodes-base.awsSnsTrigger",
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "topic": "arn:aws:sns:ap-south-1:1+1234567890:n8n-rocks"
+      },
+      "credentials": {
+        "aws": {
+          "id": "credential-id",
+          "name": "aws Credential"
+        }
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {}
+}

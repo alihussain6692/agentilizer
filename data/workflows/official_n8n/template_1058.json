@@ -1,0 +1,52 @@
+{
+  "template_id": 1058,
+  "template_name": "Send message on Mattermost when your n8n instance starts",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "n8n Trigger",
+      "type": "n8n-nodes-base.n8nTrigger",
+      "position": [
+        450,
+        200
+      ],
+      "parameters": {
+        "events": [
+          "init"
+        ]
+      },
+      "typeVersion": 1
+    },
+    {
+      "name": "Mattermost",
+      "type": "n8n-nodes-base.mattermost",
+      "position": [
+        650,
+        200
+      ],
+      "parameters": {
+        "message": "=Your n8n instance started at {{$json[\"timestamp\"]}}",
+        "channelId": "toyi3uoycf8rirtm7d5jm15sso",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "credentials": {
+        "mattermostApi": "Mattermost Credentials"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "n8n Trigger": {
+      "main": [
+        [
+          {
+            "node": "Mattermost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

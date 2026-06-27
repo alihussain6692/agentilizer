@@ -1,0 +1,27 @@
+{
+  "template_id": 657,
+  "template_name": "Receive messages for a MQTT queue",
+  "source": "n8n_official_api",
+  "id": "51",
+  "name": "Receive messages for a MQTT queue",
+  "nodes": [
+    {
+      "name": "MQTT Trigger",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "position": [
+        690,
+        260
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "credentials": {
+        "mqtt": "mqtt"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {}
+}

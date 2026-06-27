@@ -1,0 +1,52 @@
+{
+  "template_id": 494,
+  "template_name": "Create a client in Harvest",
+  "source": "n8n_official_api",
+  "id": "120",
+  "name": "Create a client in Harvest",
+  "nodes": [
+    {
+      "name": "On clicking 'execute'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {},
+      "typeVersion": 1
+    },
+    {
+      "name": "Harvest",
+      "type": "n8n-nodes-base.harvest",
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "name": "",
+        "resource": "client",
+        "operation": "create",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "harvestApi": ""
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {
+    "On clicking 'execute'": {
+      "main": [
+        [
+          {
+            "node": "Harvest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

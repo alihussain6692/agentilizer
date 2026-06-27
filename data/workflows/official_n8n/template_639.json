@@ -1,0 +1,23 @@
+{
+  "template_id": 639,
+  "template_name": "Receive server-sent events",
+  "source": "n8n_official_api",
+  "name": "",
+  "nodes": [
+    {
+      "name": "SSE Trigger",
+      "type": "n8n-nodes-base.sseTrigger",
+      "position": [
+        850,
+        420
+      ],
+      "parameters": {
+        "url": "https://n8n.io"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {}
+}

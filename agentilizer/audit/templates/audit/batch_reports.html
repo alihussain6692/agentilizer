@@ -1,0 +1,122 @@
+{% extends 'audit/base.html' %}
+{% load static %}
+
+{% block title %}AGENTILIZER // BATCH REPORTS{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header { color: #FFD700; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 24px; }
+
+  .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+
+  .report-card {
+    background: #111111;
+    border: 1px solid #1A1A1A;
+    border-left: 3px solid #FFD700;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: background 0.15s, border-left-color 0.15s;
+  }
+  .report-card:hover { background: #141414; border-left-color: #00FF41; }
+  .report-card-body {
+    padding: 18px 20px 12px;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+  }
+
+  .report-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .report-card-name { color: #FFD700; font-size: 0.84rem; font-weight: 700; flex: 1; }
+  .report-card-date { color: #444; font-size: 0.7rem; white-space: nowrap; }
+
+  .report-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .report-stat { text-align: center; }
+  .report-stat-val { font-size: 1.2rem; font-weight: 700; line-height: 1; }
+  .report-stat-lbl { color: #444; font-size: 0.64rem; letter-spacing: 0.08em; margin-top: 3px; }
+
+  .report-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid #1A1A1A;
+    font-size: 0.72rem;
+  }
+  .report-card-workflows { color: #555; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: #FFD700; }
+  .empty-state a { color: #00FF41; text-decoration: none; }
+  .empty-state a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  &gt; BATCH AUDIT REPORTS<span class="cursor">_</span>
+</div>
+
+{% if reports %}
+<div class="report-grid">
+  {% for report in reports %}
+  <div class="report-card">
+    <a href="{% url 'collective_results' report.id %}" class="report-card-body">
+      <div class="report-card-header">
+        <div class="report-card-name">{{ report.name }}</div>
+        <div class="report-card-date">{{ report.created_at|date:"Y-m-d H:i" }}</div>
+      </div>
+      <div class="report-card-stats">
+        <div class="report-stat">
+          <div class="report-stat-val c-gold">{{ report.avg_ede_across_all|floatformat:1 }}%</div>
+          <div class="report-stat-lbl">AVG EDE</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val {% if report.total_gdpr_flags > 0 %}c-red{% else %}c-green{% endif %}">{{ report.total_gdpr_flags }}</div>
+          <div class="report-stat-lbl">GDPR FLAGS</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" style="color:#AA44FF;">{{ report.total_aibom_issues }}</div>
+          <div class="report-stat-lbl">AI-BOM ISSUES</div>
+        </div>
+      </div>
+    </a>
+    <div class="report-card-footer" style="padding:10px 20px;">
+      <span class="report-card-workflows">{{ report.total_workflows }} workflow{{ report.total_workflows|pluralize }}</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        {% with score=report.highest_risk|lower %}
+        <span class="badge badge-{{ score }}">{{ report.highest_risk }}</span>
+        {% endwith %}
+        <a href="{% url 'collective_results' report.id %}" class="btn btn-sm">[VIEW]</a>
+        <form method="POST"
+              action="{% url 'delete_batch_report' report.id %}"
+              onsubmit="return confirm('Delete this entire batch report and all {{ report.total_workflows }} workflow audit(s) inside it? This cannot be undone.')"
+              style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:4px 10px; background:#1A0000; color:#FF0040; border:1px solid #FF0040; border-radius:2px; cursor:pointer; font-weight:700;">✕ DELETE</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  &gt; no batch reports yet.<br>
+  <a href="/audit/">upload multiple workflows at once to create a batch report</a><span class="cursor">_</span>
+</div>
+{% endif %}
+
+<div style="text-align:right; margin-top:20px;">
+  <a href="{% url 'upload' %}" class="btn btn-green">[NEW BATCH AUDIT]</a>
+</div>
+{% endblock %}

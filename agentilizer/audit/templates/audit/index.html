@@ -1,0 +1,274 @@
+{% extends 'audit/base.html' %}
+{% load static %}
+
+{% block title %}AGENTILIZER // DASHBOARD{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header { color: var(--gold); font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 24px; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  @media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+  .stat-card.green  { border-left: 3px solid var(--green); }
+  .stat-card.gold   { border-left: 3px solid var(--gold); }
+  .stat-card.red    { border-left: 3px solid var(--red); }
+  .stat-card.purple { border-left: 3px solid var(--purple); }
+
+  .stat-label { color: var(--text-dim); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+  .stat-value.green  { color: var(--green); }
+  .stat-value.gold   { color: var(--gold); }
+  .stat-value.red    { color: var(--red); }
+  .stat-value.purple { color: var(--purple); }
+
+  /* Section headers */
+  .section-hdr {
+    color: var(--gold);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 28px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-hdr::before { content: '▶'; font-size: 0.7rem; }
+
+  /* ASCII bar chart */
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px;
+    margin-bottom: 28px;
+    font-size: 0.8rem;
+  }
+  .chart-panel .chart-title { color: var(--text-dim); font-size: 0.7rem; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; line-height: 1.4; }
+  .chart-label { color: var(--text-muted); width: 60px; flex-shrink: 0; font-size: 0.75rem; }
+  .chart-bar   { letter-spacing: -1px; font-size: 0.85rem; }
+  .chart-count { color: var(--text-dim); font-size: 0.72rem; margin-left: 6px; }
+  .bar-high    { color: var(--red); }
+  .bar-medium  { color: var(--gold); }
+  .bar-low     { color: var(--green); }
+  .bar-minimal { color: var(--green-darker); }
+
+  /* Batch report cards */
+  .report-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .report-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .report-card:hover { border-color: var(--gold); background: var(--surface); }
+  .report-card-body { padding: 14px 16px 10px; text-decoration: none; display: block; color: inherit; }
+  .report-card-name { color: var(--gold); font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }
+  .report-card-meta { color: var(--text-dim); font-size: 0.72rem; }
+  .report-card-meta span { color: var(--text-muted); margin-right: 14px; }
+
+  /* Audit table */
+  .audit-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .audit-table th {
+    background: var(--border); color: var(--gold); text-align: left;
+    padding: 10px 14px; letter-spacing: 0.08em; font-weight: 500; font-size: 0.75rem;
+  }
+  .audit-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .audit-table tr:nth-child(odd)  td { background: var(--surface); }
+  .audit-table tr:nth-child(even) td { background: var(--bg); }
+  .audit-table tr:hover td { background: var(--surface); }
+
+  .ede-high   { color: var(--red);   font-weight: 700; }
+  .ede-medium { color: var(--gold);  font-weight: 700; }
+  .ede-low    { color: var(--green); }
+  .ede-none   { color: var(--text-dimmer); }
+
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--gold); }
+  .empty-state a { color: var(--green); text-decoration: none; }
+  .empty-state a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  &gt; AGENTILIZER // WORKFLOW AUDIT PLATFORM<span class="cursor">_</span>
+</div>
+
+<!-- Global stats -->
+<div class="stat-grid">
+  <div class="stat-card green">
+    <div class="stat-label">Total Workflows Audited</div>
+    <div class="stat-value green">{{ total_jobs }}</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-label">Average EDE Rate</div>
+    <div class="stat-value gold">{{ global_avg_ede|floatformat:1 }}<span style="font-size:1rem">%</span></div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">Total GDPR Concerns</div>
+    <div class="stat-value red">{{ total_gdpr_flags }}</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">Total AI-BOM Issues</div>
+    <div class="stat-value purple">{{ total_aibom_issues }}</div>
+  </div>
+</div>
+
+<!-- EDE Distribution chart -->
+{% if total_jobs %}
+<div class="chart-panel">
+  <div class="chart-title">EDE RISK DISTRIBUTION ACROSS ALL AUDITS</div>
+  <div class="chart-row">
+    <span class="chart-label">HIGH</span>
+    <span class="chart-bar bar-high">{{ ede_bars.HIGH }}</span>
+    <span class="chart-count">{{ ede_dist.HIGH }} workflow{{ ede_dist.HIGH|pluralize }}</span>
+  </div>
+  <div class="chart-row">
+    <span class="chart-label">MEDIUM</span>
+    <span class="chart-bar bar-medium">{{ ede_bars.MEDIUM }}</span>
+    <span class="chart-count">{{ ede_dist.MEDIUM }} workflow{{ ede_dist.MEDIUM|pluralize }}</span>
+  </div>
+  <div class="chart-row">
+    <span class="chart-label">LOW</span>
+    <span class="chart-bar bar-low">{{ ede_bars.LOW }}</span>
+    <span class="chart-count">{{ ede_dist.LOW }} workflow{{ ede_dist.LOW|pluralize }}</span>
+  </div>
+  <div class="chart-row">
+    <span class="chart-label">MINIMAL</span>
+    <span class="chart-bar bar-minimal">{{ ede_bars.MINIMAL }}</span>
+    <span class="chart-count">{{ ede_dist.MINIMAL }} workflow{{ ede_dist.MINIMAL|pluralize }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent batch reports -->
+{% if recent_reports %}
+<div class="section-hdr">Recent Batch Reports</div>
+<div class="report-cards">
+  {% for report in recent_reports %}
+  <div class="report-card">
+    <a href="{% url 'collective_results' report.id %}" class="report-card-body">
+      <div class="report-card-name">{{ report.name }}</div>
+      <div class="report-card-meta">
+        <span>{{ report.total_workflows }} workflows</span>
+        <span>EDE {{ report.avg_ede_across_all|floatformat:1 }}%</span>
+        {% with score=report.highest_risk|lower %}
+        <span class="badge badge-{{ score }}" style="font-size:0.65rem;">{{ report.highest_risk }}</span>
+        {% endwith %}
+      </div>
+      <div style="color:var(--text-dimmer); font-size:0.68rem; margin-top:6px;">{{ report.created_at|date:"Y-m-d H:i" }}</div>
+    </a>
+    <div style="padding:8px 16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:6px;">
+      <a href="{% url 'collective_results' report.id %}" class="btn btn-sm">[VIEW]</a>
+      <form method="POST"
+            action="{% url 'delete_batch_report' report.id %}"
+            onsubmit="return confirm('Delete this batch report and all {{ report.total_workflows }} audit(s) inside it?')"
+            style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:4px 10px; background:var(--red-bg); color:var(--red); border:1px solid var(--red); border-radius:2px; cursor:pointer; font-weight:700;">✕ DELETE</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Individual audits table -->
+<div class="section-hdr">All Individual Audits</div>
+
+{% if jobs %}
+<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+  <form method="POST" action="{% url 'delete_all_jobs' %}"
+        onsubmit="return confirm('Delete ALL audits? This cannot be undone.')">
+    {% csrf_token %}
+    <button type="submit" style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; padding:5px 14px; background:var(--red-bg); color:var(--red); border:1px solid var(--red); border-radius:3px; cursor:pointer; font-weight:700;">✕ DELETE ALL AUDITS</button>
+  </form>
+</div>
+<table class="audit-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Workflow Name</th>
+      <th>Date</th>
+      <th>EDE Rate</th>
+      <th>GDPR</th>
+      <th>Risk Score</th>
+      <th>Status</th>
+      <th>Action</th>
+      <th>Delete</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job in jobs %}
+    <tr>
+      <td class="c-dim">{{ job.id }}</td>
+      <td style="max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-sub);">{{ job.workflow_name }}</td>
+      <td class="c-dim" style="font-size:0.75rem;">{{ job.created_at|date:"Y-m-d H:i" }}</td>
+      <td>
+        {% if job.result %}
+          {% if job.result.avg_ede >= 70 %}
+            <span class="ede-high">{{ job.result.avg_ede|floatformat:1 }}%</span>
+          {% elif job.result.avg_ede >= 40 %}
+            <span class="ede-medium">{{ job.result.avg_ede|floatformat:1 }}%</span>
+          {% else %}
+            <span class="ede-low">{{ job.result.avg_ede|floatformat:1 }}%</span>
+          {% endif %}
+        {% else %}<span class="ede-none">—</span>{% endif %}
+      </td>
+      <td>
+        {% if job.result %}
+          {% if job.result.gdpr_flag %}
+            <span style="color:var(--red); font-weight:700;">⚠</span>
+          {% else %}
+            <span style="color:var(--green-dark);">✓</span>
+          {% endif %}
+        {% else %}<span class="c-dim">—</span>{% endif %}
+      </td>
+      <td>
+        {% if job.result %}
+          {% with score=job.result.combined_risk_score|lower %}
+          <span class="badge badge-{{ score }}">{{ job.result.combined_risk_score }}</span>
+          {% endwith %}
+        {% else %}<span class="badge badge-unknown">—</span>{% endif %}
+      </td>
+      <td>
+        {% if job.status == 'complete' %}<span class="c-green">{{ job.status }}</span>
+        {% elif job.status == 'failed' %}<span class="c-red">{{ job.status }}</span>
+        {% elif job.status == 'running' %}<span class="c-gold">{{ job.status }}</span>
+        {% else %}<span class="c-dim">{{ job.status }}</span>{% endif %}
+      </td>
+      <td>
+        {% if job.result %}
+          <a href="{% url 'results' job.id %}" class="btn btn-sm">VIEW</a>
+        {% else %}<span class="c-dim">—</span>{% endif %}
+      </td>
+      <td>
+        <form method="POST" action="{% url 'delete_job' job.id %}"
+              onsubmit="return confirm('Delete audit for {{ job.workflow_name }}?')">
+          {% csrf_token %}
+          <button type="submit" style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:3px 8px; background:var(--red-bg); color:var(--red); border:1px solid var(--red); border-radius:3px; cursor:pointer;">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  &gt; no audits found. <a href="/audit/">upload a workflow to begin</a><span class="cursor">_</span>
+</div>
+{% endif %}
+{% endblock %}

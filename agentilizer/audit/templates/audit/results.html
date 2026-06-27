@@ -1,0 +1,885 @@
+{% extends 'audit/base.html' %}
+{% load static %}
+{% load audit_filters %}
+
+{% block title %}AGENTILIZER // {{ job.workflow_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Top header bar ─────────────────────────────────── */
+  .report-header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--gold);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -28px -28px 24px -28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .report-header-left { color: var(--gold); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; }
+  .report-header-center { color: var(--text); font-size: 0.9rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge-lg {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+  }
+
+  /* ── Executive summary ──────────────────────────────── */
+  .exec-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .exec-title {
+    color: var(--gold);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .exec-title::before { content: '▶'; font-size: 0.7rem; }
+
+  .stat-boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 800px) { .stat-boxes { grid-template-columns: repeat(2,1fr); } }
+
+  .stat-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-box-top    { border-top: 3px solid var(--border-med); }
+  .stat-box-green  { border-top-color: var(--green); }
+  .stat-box-gold   { border-top-color: var(--gold); }
+  .stat-box-red    { border-top-color: var(--red); }
+
+  .stat-box-value { font-size: 2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .stat-box-label { color: var(--text-dim); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── GDPR banner ─────────────────────────────────────── */
+  .gdpr-banner {
+    border-radius: 4px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .gdpr-violation { background: var(--red-bg);   border: 1px solid var(--red);   color: var(--red); }
+  .gdpr-compliant { background: var(--green-bg);  border: 1px solid var(--green); color: var(--green); }
+
+  /* ── Section headers ────────────────────────────────── */
+  .section-hdr {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding: 10px 0;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .section-hdr.green { color: var(--green); }
+  .section-hdr.gold  { color: var(--gold); }
+  .section-hdr::before { content: '▶'; font-size: 0.7rem; }
+
+  /* Filter buttons */
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+  .filter-btn.active-all    { border-color: var(--text-muted); color: var(--text-muted); }
+  .filter-btn.active-HIGH   { border-color: var(--red);   color: var(--red);   background: rgba(255,0,64,0.08); }
+  .filter-btn.active-MEDIUM { border-color: var(--gold);  color: var(--gold);  background: rgba(255,215,0,0.08); }
+  .filter-btn.active-LOW    { border-color: var(--green); color: var(--green); background: rgba(0,255,65,0.08); }
+  .filter-btn:not(.active-all):not(.active-HIGH):not(.active-MEDIUM):not(.active-LOW):hover { border-color: var(--text-dim); color: var(--text-muted); }
+  .filter-row { display: flex; gap: 6px; margin-left: auto; }
+
+  /* ── Finding cards (EDE & AI-BOM) ──────────────────── */
+  .finding-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border-med);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .finding-card.sev-HIGH, .finding-card.sev-CRITICAL { border-left-color: var(--red); }
+  .finding-card.sev-MEDIUM { border-left-color: var(--gold); }
+  .finding-card.sev-LOW    { border-left-color: var(--green); }
+  .finding-card.sev-MINIMAL { border-left-color: #1A3A1A; }
+  .finding-card.sev-INFO, .finding-card.sev-UNKNOWN { border-left-color: var(--text-dimmer); }
+
+  .finding-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .finding-header:hover { background: rgba(128,128,128,0.05); }
+
+  .finding-sev-badge { flex-shrink: 0; min-width: 65px; text-align: center; }
+  .finding-name { flex: 1; font-weight: 600; font-size: 0.84rem; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .finding-ratio { flex-shrink: 0; font-size: 0.84rem; font-weight: 700; }
+  .finding-ratio.sev-HIGH, .finding-ratio.sev-CRITICAL { color: var(--red); }
+  .finding-ratio.sev-MEDIUM { color: var(--gold); }
+  .finding-ratio.sev-LOW    { color: var(--green); }
+
+  .finding-mini-bar {
+    height: 4px;
+    width: 100%;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .finding-mini-bar-fill {
+    height: 100%;
+    transition: width 1.5s ease-out;
+  }
+  .finding-mini-bar-fill.sev-HIGH, .finding-mini-bar-fill.sev-CRITICAL {
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+  }
+  .finding-mini-bar-fill.sev-MEDIUM { background: var(--gold);  box-shadow: 0 0 8px var(--gold); }
+  .finding-mini-bar-fill.sev-LOW    { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .finding-details {
+    display: none;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .finding-details.expanded { display: block; }
+
+  .detail-row { margin-bottom: 8px; color: #777; }
+  .detail-row strong { color: #AAA; margin-right: 6px; }
+
+  .field-pill {
+    display: inline-block;
+    background: var(--red-bg);
+    border: 1px solid rgba(255,0,64,0.4);
+    color: var(--red);
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin: 2px 3px 2px 0;
+    letter-spacing: 0.04em;
+  }
+  .field-pill.pii  { background: var(--field-pii-bg); border-color: rgba(255,0,64,0.4); color: var(--field-pii-text); }
+  .field-pill.info { background: var(--gold-bg); border-color: rgba(255,215,0,0.3); color: var(--field-unnec-text); }
+
+  .gdpr-inline {
+    display: inline-block;
+    background: rgba(255,0,64,0.1);
+    border: 1px solid rgba(255,0,64,0.3);
+    color: var(--red);
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .recommendation {
+    margin-top: 10px;
+    color: var(--green-deep);
+    font-size: 0.75rem;
+    padding: 8px 12px;
+    background: rgba(0,255,65,0.03);
+    border-left: 2px solid var(--green-dark);
+    border-radius: 2px;
+  }
+
+  /* ── JSON Evidence panels ───────────────────────────── */
+  .evidence-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dimmer);
+    border: 1px solid var(--border-dim);
+    background: var(--surface-3);
+    padding: 3px 9px;
+    border-radius: 2px;
+    user-select: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .evidence-toggle:hover { color: var(--text-muted); border-color: var(--border-med); }
+  .evidence-toggle.open  { color: var(--green); border-color: var(--green-dark); }
+
+  .evidence-panel {
+    display: none;
+    margin-top: 6px;
+    background: var(--surface-3);
+    border: 1px solid #1A2A1A;
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 0.7rem;
+    color: var(--green-deep);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .evidence-panel.open { display: block; }
+  .evidence-panel-label {
+    color: var(--text-dimmer);
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .chevron { margin-left: auto; color: var(--text-dimmer); font-size: 0.7rem; flex-shrink: 0; }
+
+  /* ── Unavailable / empty panels ─────────────────────── */
+  .unavail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    color: var(--gold);
+    font-size: 0.84rem;
+  }
+  .unavail-panel .reason { color: var(--text-dimmer); font-size: 0.76rem; margin-top: 8px; }
+  .unavail-panel .hint   { color: var(--text-dark);   font-size: 0.72rem; margin-top: 6px; }
+
+  .no-findings {
+    background: rgba(0,255,65,0.03);
+    border: 1px solid var(--green-dark);
+    color: var(--green);
+    padding: 14px 20px;
+    border-radius: 4px;
+    font-size: 0.84rem;
+  }
+
+  /* ── Bottom action bar ──────────────────────────────── */
+  .action-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 24px -28px -28px -28px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .combined-score-display { }
+  .combined-score-label { color: var(--text-dim); font-size: 0.72rem; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .combined-score-value { font-size: 1.8rem; font-weight: 700; }
+  .combined-score-value.critical, .combined-score-value.high   { color: var(--red); }
+  .combined-score-value.medium  { color: var(--gold); }
+  .combined-score-value.low, .combined-score-value.minimal { color: var(--green); }
+  .combined-score-value.unknown { color: var(--text-dim); }
+  .action-bar-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Full Comparison two-panel layout ─────────────── */
+  .cmp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .cmp-grid { grid-template-columns: 1fr; }
+  }
+  .cmp-panel {
+    background: var(--surface-4);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px 16px;
+    font-size: 1.5rem;
+    line-height: 1.5;
+  }
+  .cmp-tbl { width: 100%; border-collapse: collapse; font-size: 1.5rem; table-layout: fixed; }
+  .cmp-tbl tr { border-bottom: 1px solid var(--border); }
+  .cmp-tbl tr:last-child { border-bottom: none; }
+  .cmp-tr-req      { background: var(--field-req-bg); }
+  .cmp-tr-unneeded { background: var(--field-unnec-bg); }
+  .cmp-tr-pii      { background: var(--field-pii-bg); }
+  .cmp-td-name { padding: 8px 10px 8px 0; vertical-align: top; width: 42%; }
+  .cmp-td-val  { padding: 8px 0 8px 10px; vertical-align: top; color: var(--code-text); font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; word-break: break-all; line-height: 1.4; }
+  .cmp-badges  { display: inline-flex; gap: 4px; flex-wrap: wrap; vertical-align: middle; margin-left: 6px; }
+  .cmp-badge   { font-size: 1rem; padding: 3px 8px; border-radius: 2px; font-weight: 700; vertical-align: middle; }
+  .cmp-badge-pii      { background: var(--red);   color: var(--bg); }
+  .cmp-badge-unneeded { background: var(--gold);  color: var(--bg); }
+  .cmp-badge-req      { background: var(--green); color: var(--bg); }
+  .cmp-badge-expr     { background: var(--conf-med-bg); color: var(--field-unnec-text); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Top header bar ── -->
+<div class="report-header">
+  <div class="report-header-left">&gt; AGENTILIZER AUDIT REPORT</div>
+  <div class="report-header-center">{{ job.workflow_name }}</div>
+  {% with score=result.combined_risk_score|lower %}
+  <span class="badge-lg
+    {% if score == 'critical' or score == 'high' %}badge-high
+    {% elif score == 'medium' %}badge-medium
+    {% elif score == 'low' or score == 'minimal' %}badge-low
+    {% else %}badge-unknown{% endif %}">
+    {{ result.combined_risk_score }}
+  </span>
+  {% endwith %}
+</div>
+
+<!-- ── Executive summary ── -->
+<div class="exec-panel">
+  <div class="exec-title">EXECUTIVE SUMMARY</div>
+  <div class="stat-boxes">
+    <div class="stat-box stat-box-top {% if result.avg_ede >= 70 %}stat-box-red{% elif result.avg_ede >= 40 %}stat-box-gold{% else %}stat-box-green{% endif %}">
+      <div class="stat-box-value
+        {% if result.avg_ede >= 70 %}c-red{% elif result.avg_ede >= 40 %}c-gold{% else %}c-green{% endif %}">
+        <span class="counter" data-target="{{ result.avg_ede|floatformat:2 }}">0.00</span>%
+      </div>
+      <div class="stat-box-label">EDE Rate</div>
+    </div>
+    <div class="stat-box stat-box-top stat-box-green">
+      <div class="stat-box-value c-green">{{ result.nodes_assessed }}<span style="font-size:1rem;color:var(--text-dimmer)"> / {{ result.nodes_total }}</span></div>
+      <div class="stat-box-label">Nodes Assessed</div>
+    </div>
+    <div class="stat-box stat-box-top {% if result.unnecessary_pii_total > 0 %}stat-box-red{% else %}stat-box-green{% endif %}">
+      <div class="stat-box-value {% if result.unnecessary_pii_total > 0 %}c-red{% else %}c-green{% endif %}">{{ result.unnecessary_pii_total }}</div>
+      <div class="stat-box-label">Unnecessary PII Fields</div>
+    </div>
+    <div class="stat-box stat-box-top
+      {% with score=result.combined_risk_score|lower %}
+        {% if score == 'critical' or score == 'high' %}stat-box-red{% elif score == 'medium' %}stat-box-gold{% else %}stat-box-green{% endif %}
+      {% endwith %}">
+      <div class="stat-box-value
+        {% with score=result.combined_risk_score|lower %}
+          {% if score == 'critical' or score == 'high' %}c-red{% elif score == 'medium' %}c-gold{% else %}c-green{% endif %}
+        {% endwith %}" style="font-size:1.4rem;">{{ result.combined_risk_score }}</div>
+      <div class="stat-box-label">Combined Risk</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GDPR compliance banner ── -->
+{% if result.gdpr_flag %}
+<div class="gdpr-banner gdpr-violation">
+  ⚠ GDPR ARTICLE 5(1)(c) DATA MINIMISATION VIOLATION DETECTED — {{ result.gdpr_concerns }} concern(s) found
+</div>
+{% else %}
+<div class="gdpr-banner gdpr-compliant">
+  ✓ DATA MINIMISATION COMPLIANT — no GDPR Article 5(1)(c) concerns detected
+</div>
+{% endif %}
+
+<!-- ── EDE Findings ── -->
+<div class="section-hdr green">
+  PRIVACY FINDINGS — EDE-AUDITOR v1.0
+  <span style="color:var(--text-dimmer); font-weight:400; font-size:0.72rem;">{{ result.nodes_assessed }} nodes assessed / {{ result.nodes_with_ede }} with EDE</span>
+  <div class="filter-row">
+    <button class="filter-btn active-all" onclick="filterCards(this,'ALL')" data-filter="ALL">ALL</button>
+    <button class="filter-btn" onclick="filterCards(this,'HIGH')" data-filter="HIGH">HIGH</button>
+    <button class="filter-btn" onclick="filterCards(this,'MEDIUM')" data-filter="MEDIUM">MEDIUM</button>
+    <button class="filter-btn" onclick="filterCards(this,'LOW')" data-filter="LOW">LOW</button>
+  </div>
+</div>
+
+{% with found_any=False %}
+{% for node in result.node_results %}
+  {% if node.node_scope == "egress" or node.node_scope == "ai" %}
+    {% if node.status == "assessed" and node.fields_required > 0 %}
+      {% if node.ede_ratio > 0 or node.pii_unnecessary %}
+    {% with sev=node.severity|upper pct=node.ede_ratio|floatformat:0 %}
+    <div class="finding-card sev-{{ sev }}" data-severity="{{ sev }}">
+      <div class="finding-header" onclick="toggleCard(this)">
+        <span class="finding-sev-badge">
+          <span class="badge badge-{{ sev|lower }}">{{ sev }}</span>
+        </span>
+        <span class="finding-name" title="{{ node.node_type }}">
+          {{ node.node_name|default:node.short_name }}
+          <span style="color:var(--text-dimmer); font-size:0.72rem; font-weight:400;"> ({{ node.short_name }})</span>
+        </span>
+        <span class="finding-ratio sev-{{ sev }}">{{ node.ede_ratio|floatformat:2 }}</span>
+        <span class="chevron" id="chev-{{ forloop.counter }}">▼</span>
+      </div>
+      <div class="finding-mini-bar">
+        <div class="finding-mini-bar-fill sev-{{ sev }}"
+             data-width="{{ pct }}"
+             style="width:0%"></div>
+      </div>
+      <div class="finding-details" id="details-{{ forloop.counter }}">
+        <div class="detail-row">
+          <strong>Fields Passed:</strong>{{ node.fields_passed }}
+          &nbsp;&nbsp;<strong>Required:</strong>{{ node.fields_required }}
+          &nbsp;&nbsp;<strong>Unnecessary:</strong><span class="c-red">{{ node.fields_unnecessary }}</span>
+        </div>
+
+        {% if node.unnecessary_fields %}
+        <div class="detail-row">
+          <strong>Unnecessary Fields:</strong><br>
+          {% for f in node.unnecessary_fields %}
+            <span class="field-pill">{{ f }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if node.pii_unnecessary %}
+        <div class="detail-row" style="margin-top:6px;">
+          <strong style="color:var(--field-pii-text);">PII Fields Exposed:</strong><br>
+          {% for f in node.pii_unnecessary %}
+            <span class="field-pill pii">{{ f }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if node.gdpr_concern %}
+        <div style="margin-top:8px; padding:6px 10px; background:var(--red-bg); border:1px solid var(--red); border-radius:3px; font-size:0.72rem; display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--red); font-weight:700;">⚠ GDPR ARTICLE 5(1)(c) CONCERN</span>
+          <span style="padding:2px 8px; border-radius:10px; font-size:0.65rem; font-weight:700;
+            background:{% if node.node_pii_confidence == 'HIGH' %}var(--conf-high-bg){% else %}var(--conf-med-bg){% endif %};
+            color:{% if node.node_pii_confidence == 'HIGH' %}var(--field-pii-text){% else %}var(--field-unnec-text){% endif %};
+            border:1px solid {% if node.node_pii_confidence == 'HIGH' %}var(--conf-high-border){% else %}var(--conf-med-border){% endif %};">
+            {% if node.node_pii_confidence == 'HIGH' %}HIGH CONFIDENCE — literal PII value{% else %}MEDIUM CONFIDENCE — expression value, manual review needed{% endif %}
+          </span>
+        </div>
+        {% endif %}
+
+        <div class="recommendation">
+          &gt; RECOMMENDATION: Insert a Set node before <strong>{{ node.short_name }}</strong> to strip unnecessary fields. Only pass the {{ node.fields_required }} field(s) this node requires.
+        </div>
+
+        {% if node.full_payload_snippet or node.ede_snippet or node.pii_snippet or node.api_key_fields %}
+        <div style="margin-top:10px;">
+
+          {% if node.full_payload_snippet %}
+          <button class="evidence-toggle" onclick="toggleEvidence(this,'ede-snip-{{ forloop.counter }}')">&#9658; SHOW JSON EVIDENCE ({{ node.full_payload_snippet|length }} field{{ node.full_payload_snippet|length|pluralize }} sent)</button>
+          <div class="evidence-panel json-evidence-panel" id="ede-snip-{{ forloop.counter }}" style="padding:0; background:transparent; border:none; max-height:none;">
+
+            <!-- VIEW TOGGLE BUTTONS -->
+            <div style="display:flex; gap:6px; margin-bottom:10px; margin-top:4px;">
+              <button class="view-toggle" data-view="violations"
+                      onclick="switchView(this,'violations')"
+                      style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:3px 10px; {% if node.ede_snippet %}background:var(--gold); color:var(--bg); border:1px solid var(--gold);{% else %}background:var(--surface); color:var(--text-faint); border:1px solid var(--border-med);{% endif %} border-radius:2px; cursor:pointer; font-weight:700; letter-spacing:0.06em;">
+                VIOLATIONS ONLY
+              </button>
+              <button class="view-toggle" data-view="comparison"
+                      onclick="switchView(this,'comparison')"
+                      style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:3px 10px; {% if node.ede_snippet %}background:var(--surface); color:var(--text-faint); border:1px solid var(--border-med);{% else %}background:var(--gold); color:var(--bg); border:1px solid var(--gold);{% endif %} border-radius:2px; cursor:pointer; font-weight:700; letter-spacing:0.06em;">
+                FULL COMPARISON
+              </button>
+            </div>
+
+            <!-- VIOLATIONS ONLY VIEW (default when ede_snippet non-empty) -->
+            <div class="view-violations" style="display:{% if node.ede_snippet %}block{% else %}none{% endif %};">
+              <div style="color:var(--text-dimmer); font-size:0.62rem; margin-bottom:8px; letter-spacing:0.06em;">
+                // {{ node.ede_snippet|length }} unnecessary field{{ node.ede_snippet|length|pluralize }} — fields exceeding the minimum required
+              </div>
+              {% for field_name, field_data in node.ede_snippet.items %}
+              <div style="
+                background:{% if field_data.confidence == 'HIGH' %}var(--red-bg){% else %}var(--gold-bg){% endif %};
+                border:1px solid {% if field_data.confidence == 'HIGH' %}var(--conf-high-border){% else %}var(--conf-med-border){% endif %};
+                border-left:3px solid {% if field_data.confidence == 'HIGH' %}var(--field-pii-text){% else %}var(--field-unnec-text){% endif %};
+                border-radius:2px; padding:7px 10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:4px;">
+                  <span style="color:{% if field_data.confidence == 'HIGH' %}var(--field-pii-text){% else %}var(--field-unnec-text){% endif %}; font-weight:700; font-size:0.74rem;">&quot;{{ field_name }}&quot;</span>
+                  <div style="display:flex; gap:3px; flex-wrap:wrap;">
+                    {% if field_data.is_pii %}<span style="background:var(--field-pii-text);color:var(--bg);font-size:0.58rem;padding:1px 5px;border-radius:2px;font-weight:700;">PII</span>{% endif %}
+                    <span style="font-size:0.58rem;padding:1px 5px;border-radius:2px;font-weight:700;border:1px solid;
+                      {% if field_data.confidence == 'HIGH' %}background:var(--conf-high-bg);color:var(--field-pii-text);border-color:var(--conf-high-border);
+                      {% elif field_data.confidence == 'MEDIUM' %}background:var(--conf-med-bg);color:var(--field-unnec-text);border-color:var(--conf-med-border);
+                      {% else %}background:var(--conf-low-bg);color:var(--green-deep);border-color:var(--green-dark);{% endif %}">
+                      {{ field_data.confidence }} CONF
+                    </span>
+                  </div>
+                </div>
+                <div style="color:var(--code-text); font-size:0.68rem; word-break:break-all; font-family:'JetBrains Mono',monospace; margin-bottom:3px;">{{ field_data.value }}</div>
+                <div style="color:var(--text-dimmer); font-size:0.62rem; font-style:italic;">// {{ field_data.reason }}</div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- FULL COMPARISON VIEW (default when ede_snippet is empty) -->
+            <div class="view-comparison" style="display:{% if node.ede_snippet %}none{% else %}block{% endif %};">
+
+
+              <!-- TWO-PANEL LAYOUT: registry vs actual payload -->
+              <div class="cmp-grid">
+
+                <!-- LEFT: MINIMUM REQUIRED from registry -->
+                <div class="cmp-panel" style="border-top:3px solid var(--green);">
+                  <div style="color:var(--green); font-weight:700; font-size:1.5rem; margin-bottom:8px; letter-spacing:0.05em;">✓ MINIMUM REQUIRED — FROM REGISTRY</div>
+                  <div style="color:var(--text-dimmer); font-size:1.15rem; margin-bottom:8px;">
+                    // {{ node.node_type }}<br>
+                    // source: n8n TypeScript source code
+                  </div>
+                  {% if node.required_fields_def %}
+                    <div style="color:var(--text-dim); font-size:1.15rem; margin-bottom:6px;">{{ node.required_fields_def|length }} field(s) required</div>
+                    <table class="cmp-tbl">
+                    {% for field_name, field_desc in node.required_fields_def.items %}
+                    <tr class="cmp-tr-req">
+                      <td class="cmp-td-name"><span style="color:var(--green); font-weight:700;">&quot;{{ field_name }}&quot;</span></td>
+                      <td class="cmp-td-val" style="color:#005A15;">{{ field_desc }}</td>
+                    </tr>
+                    {% endfor %}
+                    </table>
+                  {% else %}
+                    <div style="color:var(--text-dimmer); font-size:1.15rem; font-style:italic;">
+                      // No registry entry found for this node type.<br>
+                      // May be a community node or control-flow node.
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- RIGHT: ACTUAL PAYLOAD being sent -->
+                <div class="cmp-panel" style="border-top:3px solid var(--red);">
+                  <div style="color:var(--red); font-weight:700; font-size:1.5rem; margin-bottom:8px; letter-spacing:0.05em;">✗ ACTUAL PAYLOAD BEING SENT</div>
+                  <div style="color:var(--text-dimmer); font-size:1.15rem; margin-bottom:8px;">
+                    // {{ node.raw_node_name }}<br>
+                    // passed: {{ node.fields_passed }} &nbsp;|&nbsp; required: {{ node.fields_required }} &nbsp;|&nbsp; unnecessary: {{ node.fields_unnecessary }}
+                  </div>
+                  {% if node.full_payload_snippet %}
+                    <table class="cmp-tbl">
+                    {% for field_name, field_data in node.full_payload_snippet.items %}
+                    <tr class="{% if field_data.is_pii %}cmp-tr-pii{% elif field_data.is_unnecessary %}cmp-tr-unneeded{% else %}cmp-tr-req{% endif %}">
+                      <td class="cmp-td-name">
+                        <span style="color:{% if field_data.is_pii %}var(--red){% elif field_data.is_unnecessary %}var(--gold){% else %}var(--green){% endif %}; font-weight:700;">&quot;{{ field_name }}&quot;</span>
+                        <span class="cmp-badges">
+                          {% if field_data.is_pii %}<span class="cmp-badge cmp-badge-pii">PII</span>{% endif %}
+                          {% if field_data.is_unnecessary %}<span class="cmp-badge cmp-badge-unneeded">UNNECESSARY</span>
+                          {% else %}<span class="cmp-badge cmp-badge-req">REQUIRED</span>{% endif %}
+                          {% if field_data.is_expression %}<span class="cmp-badge cmp-badge-expr">EXPR</span>{% endif %}
+                        </span>
+                      </td>
+                      <td class="cmp-td-val">{{ field_data.value }}</td>
+                    </tr>
+                    {% endfor %}
+                    </table>
+                  {% else %}
+                    <div style="color:var(--text-dimmer); font-size:1.15rem; font-style:italic;">// No parameter data found in workflow JSON for this node.</div>
+                  {% endif %}
+                </div>
+
+              </div>
+
+              <!-- SUMMARY ROW -->
+              <div style="margin-top:8px; background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; font-size:1.2rem; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <span style="color:var(--green); font-weight:700;">REQUIRED: {{ node.fields_required }}</span>
+                  <span style="color:#333; margin:0 8px;">|</span>
+                  <span style="color:var(--gold); font-weight:700;">UNNECESSARY: {{ node.fields_unnecessary }}</span>
+                  <span style="color:#333; margin:0 8px;">|</span>
+                  <span style="color:var(--red); font-weight:700;">PII: {{ node.pii_unnecessary|length }}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dimmer);">EDE = {{ node.fields_unnecessary }} ÷ {{ node.fields_passed }} = </span>
+                  <span style="font-weight:700; color:{% if node.ede_ratio >= 0.70 %}var(--red){% elif node.ede_ratio >= 0.40 %}var(--gold){% else %}var(--green){% endif %};">{{ node.ede_ratio|floatformat:2 }}</span>
+                </div>
+              </div>
+
+            </div><!-- end view-comparison -->
+
+          </div>
+          {% endif %}
+
+          {% if node.pii_snippet %}
+          <button class="evidence-toggle" onclick="toggleEvidence(this,'pii-snip-{{ forloop.counter }}')" style="margin-top:6px; color:#FF006488; border-color:#2A0018;">&#9658; PII EVIDENCE ({{ node.pii_snippet|length }} field{{ node.pii_snippet|length|pluralize }})</button>
+          <div class="evidence-panel" id="pii-snip-{{ forloop.counter }}" style="padding:0; background:transparent; border:none; max-height:none;">
+            <div style="background:var(--red-bg); border:1px solid var(--red); border-left:3px solid var(--red); padding:12px; border-radius:3px; margin-top:4px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:var(--red); font-weight:700; font-size:0.7rem;">⚠ PII FIELDS IN UNNECESSARY TRANSMISSION</span>
+                <span style="padding:2px 7px; border-radius:10px; font-size:0.62rem; font-weight:700;
+                  background:{% if node.node_pii_confidence == 'HIGH' %}var(--conf-high-bg){% else %}var(--conf-med-bg){% endif %};
+                  color:{% if node.node_pii_confidence == 'HIGH' %}var(--field-pii-text){% else %}var(--field-unnec-text){% endif %};
+                  border:1px solid {% if node.node_pii_confidence == 'HIGH' %}var(--conf-high-border){% else %}var(--conf-med-border){% endif %};">
+                  OVERALL: {{ node.node_pii_confidence }} CONFIDENCE
+                </span>
+              </div>
+              {% for field_name, field_data in node.pii_snippet.items %}
+              <div style="margin-bottom:8px; padding:8px; background:#0A0000; border-radius:3px; border-left:2px solid {% if field_data.confidence == 'HIGH' %}var(--red){% else %}var(--gold){% endif %};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span style="color:var(--red); font-weight:700; font-size:0.75rem;">&quot;{{ field_name }}&quot;</span>
+                  <span style="font-size:0.65rem; color:{% if field_data.confidence == 'HIGH' %}var(--field-pii-text){% else %}var(--field-unnec-text){% endif %};">
+                    {% if field_data.confidence == 'HIGH' %}⚠⚠ HIGH — likely real PII{% else %}⚠ MEDIUM — expression, review manually{% endif %}
+                  </span>
+                </div>
+                <div style="color:var(--text-sub); font-size:0.72rem; word-break:break-all; margin-bottom:4px; font-family:'JetBrains Mono',monospace;">{{ field_data.value }}</div>
+                <div style="color:#555; font-size:0.65rem; font-style:italic;">// {{ field_data.reason }}</div>
+                {% if field_data.is_expression %}
+                <div style="margin-top:4px; color:var(--gold); font-size:0.65rem;">⚠ Expression value — confirm whether upstream data contains real personal data.</div>
+                {% else %}
+                <div style="margin-top:4px; color:var(--red); font-size:0.65rem;">✗ Literal PII value hardcoded in workflow — immediate remediation recommended.</div>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if node.api_key_fields %}
+          <button class="evidence-toggle" onclick="toggleEvidence(this,'cred-node-{{ forloop.counter }}')" style="margin-top:6px; color:#FFD70088; border-color:#2A2000;">&#9658; CREDENTIAL RISK ({{ node.api_key_fields|length }} field{{ node.api_key_fields|length|pluralize }})</button>
+          <div class="evidence-panel" id="cred-node-{{ forloop.counter }}" style="color:var(--gold); border-color:#2A2000;"><div class="evidence-panel-label">// possible hardcoded credentials in node parameters</div>{{ node.api_key_fields|pretty_json }}</div>
+          {% endif %}
+
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endwith %}
+
+{% comment %}Show a "no issues" panel if no cards were rendered{% endcomment %}
+{% with has_findings=False %}
+{% for node in result.node_results %}{% if node.ede_ratio > 0 or node.pii_unnecessary %}{% if node.short_name != "stickynote" and node.short_name != "wait" and node.short_name != "if" and node.short_name != "set" and node.short_name != "noop" %}{% with has_findings=True %}{% endwith %}{% endif %}{% endif %}{% endfor %}
+{% endwith %}
+
+{% if not result.node_results %}
+<div class="no-findings">✓ No EDE findings — all assessed nodes pass the minimum field check.</div>
+{% endif %}
+
+{% if result.ede_error %}
+<div style="color:var(--red); font-size:0.78rem; margin: 10px 0;">&gt; EDE ERROR: {{ result.ede_error }}</div>
+{% endif %}
+
+{% if result.credential_findings %}
+<!-- ── Hardcoded Credential Scan ── -->
+<div class="section-hdr gold" style="margin-top:28px;">
+  HARDCODED CREDENTIAL SCAN
+  <span style="color:var(--text-dimmer); font-weight:400; font-size:0.72rem;">{{ result.total_credential_issues }} suspected hardcoded credential{{ result.total_credential_issues|pluralize }} found</span>
+</div>
+{% for cred in result.credential_findings %}
+{% with sev=cred.severity|upper %}
+<div class="finding-card sev-{{ sev }}">
+  <div class="finding-header" onclick="toggleCard(this)">
+    <span class="finding-sev-badge"><span class="badge badge-{{ sev|lower }}">{{ sev }}</span></span>
+    <span class="finding-name">{{ cred.node }} — <span style="color:var(--text-muted);">{{ cred.field }}</span></span>
+    <span class="finding-ratio sev-{{ sev }}">{{ cred.preview }}</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="finding-mini-bar">
+    <div class="finding-mini-bar-fill sev-{{ sev }}" data-width="80" style="width:0%"></div>
+  </div>
+  <div class="finding-details">
+    <div class="detail-row"><strong>Node:</strong>{{ cred.node }}</div>
+    <div class="detail-row"><strong>Parameter Path:</strong>{{ cred.field }}</div>
+    <div class="detail-row"><strong>Value Preview:</strong><span class="c-red">{{ cred.preview }}</span> <span class="c-dim">({{ cred.length }} chars)</span></div>
+    <div style="margin-top:6px;"><span class="gdpr-inline">⚠ HARDCODED CREDENTIAL</span></div>
+    <div class="recommendation">&gt; RECOMMENDATION: Remove this hardcoded credential. Store API keys in n8n's built-in credential manager or environment variables. Never commit secrets in workflow JSON.</div>
+  </div>
+</div>
+{% endwith %}
+{% endfor %}
+{% endif %}
+
+<!-- ── AI-BOM Security Findings ── -->
+<div class="section-hdr gold" style="margin-top:28px;">
+  SECURITY FINDINGS — AI-BOM v3.6.0
+  {% if result.aibom_available %}
+    <span style="color:var(--text-dimmer); font-weight:400; font-size:0.72rem;">{{ result.aibom_total_issues }} issue(s) found</span>
+  {% endif %}
+</div>
+
+{% if not result.aibom_available %}
+<div class="unavail-panel">
+  &gt; AI-BOM SCAN UNAVAILABLE
+  {% if result.aibom_error %}<div class="reason">&gt; {{ result.aibom_error }}</div>{% endif %}
+  <div class="hint">&gt; Install ai-bom and ensure it is on PATH to enable security scanning.</div>
+</div>
+
+{% elif result.aibom_total_issues == 0 %}
+<div class="no-findings">✓ NO SECURITY ISSUES DETECTED — AI-BOM scan clean.</div>
+
+{% else %}
+{% for finding in result.aibom_findings %}
+{% with sev=finding.severity|upper %}
+<div class="finding-card sev-{{ sev }}">
+  <div class="finding-header" onclick="toggleCard(this)">
+    <span class="finding-sev-badge">
+      <span class="badge badge-{{ sev|lower }}">{{ sev }}</span>
+    </span>
+    <span class="finding-name">{{ finding.name }}</span>
+    <span class="finding-ratio sev-{{ sev }}">
+      {% if finding.risk_score %}score: {{ finding.risk_score|floatformat:0 }}{% endif %}
+    </span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="finding-mini-bar">
+    <div class="finding-mini-bar-fill sev-{{ sev }}"
+         data-width="{% if finding.risk_score %}{{ finding.risk_score|floatformat:0 }}{% else %}20{% endif %}"
+         style="width:0%"></div>
+  </div>
+  <div class="finding-details">
+    <div class="detail-row"><strong>Type:</strong>{{ finding.type }}</div>
+    {% if finding.description %}
+    <div class="detail-row"><strong>Description:</strong>{{ finding.description }}</div>
+    {% endif %}
+    {% if finding.version %}
+    <div class="detail-row"><strong>Version:</strong>{{ finding.version }}</div>
+    {% endif %}
+
+    {% if "api_key" in finding.name|lower or "credential" in finding.name|lower or "hardcoded" in finding.name|lower or "api_key" in finding.description|lower %}
+    <div style="margin-top:8px;"><span class="gdpr-inline">⚠ HARDCODED CREDENTIAL DETECTED</span></div>
+    <div class="detail-row" style="margin-top:6px;"><strong>Location:</strong>{{ finding.name }}</div>
+    <div class="recommendation">&gt; RECOMMENDATION: Move API key to an environment variable or n8n credential store. Never hardcode credentials in workflow JSON.</div>
+    {% elif "agent" in finding.type|lower %}
+    <div class="recommendation">&gt; RECOMMENDATION: Add authentication and rate-limiting to this agent endpoint. Review agent permissions and scope.</div>
+    {% else %}
+    <div class="recommendation">&gt; RECOMMENDATION: Review and remediate this AI/ML component. Ensure it meets your organisation's security policy.</div>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}
+{% endfor %}
+{% endif %}
+
+<!-- ── Bottom action bar ── -->
+<div class="action-bar">
+  <div class="combined-score-display">
+    <div class="combined-score-label">COMBINED RISK SCORE:</div>
+    {% with score=result.combined_risk_score|lower %}
+    <div class="combined-score-value {{ score }}">{{ result.combined_risk_score }}</div>
+    {% endwith %}
+  </div>
+  <div class="action-bar-btns">
+    <a href="{% url 'download_json' job.id %}" class="btn">[DOWNLOAD JSON]</a>
+    <a href="{% url 'upload' %}" class="btn btn-green">[NEW AUDIT]</a>
+    <a href="{% url 'index' %}" class="btn btn-sm" style="border-color:var(--text-dimmer); color:var(--text-faint);">[DASHBOARD]</a>
+    <form method="POST" action="{% url 'delete_job' job.id %}"
+          onsubmit="return confirm('Delete this audit?')" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" style="font-family:'JetBrains Mono',monospace; font-size:0.74rem; padding:6px 14px; background:var(--red-bg); color:var(--red); border:2px solid var(--red); border-radius:3px; cursor:pointer; font-weight:700;">✕ DELETE AUDIT</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* Animated EDE counter */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const step = target / (1500 / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current.toFixed(2);
+      if (current >= target) clearInterval(timer);
+    }, 16);
+  });
+
+  /* Animate progress bars */
+  document.querySelectorAll('[data-width]').forEach(bar => {
+    const w = Math.min(parseFloat(bar.dataset.width), 100);
+    bar.style.width = '0%';
+    setTimeout(() => {
+      bar.style.transition = 'width 1.5s ease-out';
+      bar.style.width = w + '%';
+    }, 150);
+  });
+});
+
+/* Toggle collapsible card details */
+function toggleCard(header) {
+  const card    = header.closest('.finding-card');
+  const details = card.querySelector('.finding-details');
+  const chevron = card.querySelector('.chevron');
+  if (details.classList.contains('expanded')) {
+    details.classList.remove('expanded');
+    chevron.textContent = '▼';
+  } else {
+    details.classList.add('expanded');
+    chevron.textContent = '▲';
+  }
+}
+
+/* Filter EDE cards by severity */
+function filterCards(btn, severity) {
+  /* Update button styles */
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.className = 'filter-btn';
+  });
+  if (severity === 'ALL') {
+    btn.className = 'filter-btn active-all';
+  } else {
+    btn.className = `filter-btn active-${severity}`;
+  }
+
+  document.querySelectorAll('.finding-card[data-severity]').forEach(card => {
+    if (severity === 'ALL' || card.dataset.severity === severity) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+/* Toggle JSON evidence panels */
+function toggleEvidence(btn, panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  const arrow = isOpen ? '►' : '▼';
+  btn.textContent = arrow + btn.textContent.slice(1);
+}
+
+/* Switch between VIOLATIONS ONLY / FULL COMPARISON views */
+function switchView(clickedBtn, viewName) {
+  const cs    = getComputedStyle(document.documentElement);
+  const gold  = cs.getPropertyValue('--gold').trim();
+  const bg    = cs.getPropertyValue('--bg').trim();
+  const surf  = cs.getPropertyValue('--surface').trim();
+  const faint = cs.getPropertyValue('--text-faint').trim();
+  const bmed  = cs.getPropertyValue('--border-med').trim();
+  const panel = clickedBtn.closest('.json-evidence-panel');
+  panel.querySelectorAll('.view-toggle').forEach(btn => {
+    if (btn.dataset.view === viewName) {
+      btn.style.background   = gold;
+      btn.style.color        = bg;
+      btn.style.borderColor  = gold;
+    } else {
+      btn.style.background   = surf;
+      btn.style.color        = faint;
+      btn.style.borderColor  = bmed;
+    }
+  });
+  const violations = panel.querySelector('.view-violations');
+  const comparison = panel.querySelector('.view-comparison');
+  if (viewName === 'violations') {
+    violations.style.display = 'block';
+    comparison.style.display = 'none';
+  } else {
+    violations.style.display = 'none';
+    comparison.style.display = 'block';
+  }
+}
+</script>
+{% endblock %}

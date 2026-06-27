@@ -1,0 +1,28 @@
+{
+  "template_id": 508,
+  "template_name": "Receive updates for specified tasks in Flow",
+  "source": "n8n_official_api",
+  "id": "133",
+  "name": "Receive updates for specified tasks in Flow",
+  "nodes": [
+    {
+      "name": "Flow Trigger",
+      "type": "n8n-nodes-base.flowTrigger",
+      "position": [
+        650,
+        250
+      ],
+      "parameters": {
+        "taskIds": "",
+        "resource": "task"
+      },
+      "credentials": {
+        "flowApi": ""
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {}
+}

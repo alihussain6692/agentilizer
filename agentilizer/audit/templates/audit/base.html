@@ -1,0 +1,354 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AGENTILIZER{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    (function(){
+      var t = localStorage.getItem('agentilizer-theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
+  <style>
+    /* ── Palette tokens — dark theme (default) ──────── */
+    :root {
+      --bg:           #0A0A0A;
+      --surface:      #111111;
+      --surface-2:    #0A0A0A;
+      --surface-3:    #070707;
+      --surface-4:    #050505;
+      --text:         #E0E0E0;
+      --text-sub:     #D0D0D0;
+      --text-muted:   #888;
+      --text-faint:   #666;
+      --text-dim:     #555;
+      --text-dimmer:  #444;
+      --text-dark:    #333;
+      --border:       #1A1A1A;
+      --border-med:   #333;
+      --border-dim:   #222;
+      --gold:         #FFD700;
+      --green:        #00FF41;
+      --red:          #FF0040;
+      --purple:       #AA44FF;
+      --green-deep:   #00AA28;
+      --green-dark:   #004A10;
+      --green-darker: #004010;
+      --red-bg:       #1A0000;
+      --green-bg:     #001A00;
+      --gold-bg:      #1A1A00;
+      /* ── Field-row semantic tokens ── */
+      --field-req-bg:     #000D00;
+      --field-req-text:   var(--green);
+      --field-unnec-bg:   #0D0A00;
+      --field-unnec-text: var(--gold);
+      --field-pii-bg:     #0D0000;
+      --field-pii-text:   var(--red);
+      --code-text:        #888;
+      /* ── Confidence badge tokens ── */
+      --conf-high-bg:     #3A0010;
+      --conf-med-bg:      #2A2000;
+      --conf-low-bg:      #0A1A0A;
+      --conf-high-border: #660010;
+      --conf-med-border:  #554400;
+    }
+
+    /* ── Light theme overrides ───────────────────────── */
+    html[data-theme="light"] {
+      --bg:           #FFFFFF;
+      --surface:      #F0F0F0;
+      --surface-2:    #FAFAFA;
+      --surface-3:    #EBEBEB;
+      --surface-4:    #E4E4E4;
+      --text:         #1A1A1A;
+      --text-sub:     #2A2A2A;
+      --text-muted:   #555;
+      --text-faint:   #5A5A5A;
+      --text-dim:     #666;
+      --text-dimmer:  #777;
+      --text-dark:    #888;
+      --border:       #CCCCCC;
+      --border-med:   #AAAAAA;
+      --border-dim:   #DDDDDD;
+      --gold:         #9A7B00;
+      --green:        #0A7D2C;
+      --red:          #D10038;
+      --purple:       #7B2FBF;
+      --green-deep:   #0A6A20;
+      --green-dark:   #0A5018;
+      --green-darker: #0A4010;
+      --red-bg:       #FFF0F2;
+      --green-bg:     #F0FFF5;
+      --gold-bg:      #FFFBEB;
+      /* ── Field-row semantic tokens ── */
+      --field-req-bg:     #E3F5E8;
+      --field-unnec-bg:   #FBF3DD;
+      --field-pii-bg:     #FBE3E8;
+      /* --field-*-text cascade from --green/--gold/--red overrides above */
+      --code-text:        #444;
+      /* ── Confidence badge tokens ── */
+      --conf-high-bg:     #F5D0D8;
+      --conf-med-bg:      #F5EDD0;
+      --conf-low-bg:      #D5EDDA;
+      --conf-high-border: #D10038;
+      --conf-med-border:  #9A7B00;
+    }
+
+    html[data-theme="light"] body::after { opacity: 0; }
+    html[data-theme="light"] .glow-green,
+    html[data-theme="light"] .glow-gold,
+    html[data-theme="light"] .glow-red  { animation: none; text-shadow: none; }
+    html[data-theme="light"] .finding-mini-bar-fill { box-shadow: none !important; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Scanlines overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.03) 0px,
+        rgba(0,0,0,0.03) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Navigation */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .nav-brand {
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    .nav-links a {
+      color: var(--green);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      padding: 5px 10px;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .nav-links a:hover { border-color: var(--green); background: rgba(0,255,65,0.06); }
+    .nav-links a.nav-admin { color: var(--text-faint); }
+    .nav-links a.nav-admin:hover { color: var(--text-muted); border-color: var(--text-dimmer); background: rgba(100,100,100,0.06); }
+    .nav-links a.nav-api { color: var(--gold); }
+    .nav-links a.nav-api:hover { border-color: var(--gold); background: rgba(255,215,0,0.06); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border-med);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .theme-toggle:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* Main content */
+    main {
+      flex: 1;
+      padding: 28px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 14px 28px;
+      text-align: center;
+      color: var(--text-dark);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Animations ─────────────────────────────── */
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes glow {
+      0%, 100% { text-shadow: 0 0 4px currentColor; }
+      50%       { text-shadow: 0 0 16px currentColor, 0 0 28px currentColor; }
+    }
+    @keyframes fillbar { from { width: 0%; } to { width: var(--target-width); } }
+
+    .cursor { animation: blink 1s infinite; }
+    .glow-green { animation: glow 2s infinite; color: var(--green); }
+    .glow-gold  { animation: glow 2s infinite; color: var(--gold); }
+    .glow-red   { animation: glow 2s infinite; color: var(--red); }
+
+    /* ── Shared components ──────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    /* Risk badge pills */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+    .badge-critical { background: rgba(255,0,64,0.2);   color: var(--red);        border: 1px solid var(--red); }
+    .badge-high     { background: rgba(255,0,64,0.15);  color: var(--red);        border: 1px solid rgba(255,0,64,0.5); }
+    .badge-medium   { background: rgba(255,215,0,0.15); color: var(--gold);       border: 1px solid rgba(255,215,0,0.5); }
+    .badge-low      { background: rgba(0,255,65,0.1);   color: var(--green);      border: 1px solid rgba(0,255,65,0.3); }
+    .badge-minimal  { background: rgba(0,255,65,0.05);  color: var(--green-deep); border: 1px solid rgba(0,255,65,0.15); }
+    .badge-unknown  { background: rgba(100,100,100,0.15); color: var(--text-faint); border: 1px solid var(--border-med); }
+    .badge-info     { background: rgba(100,100,100,0.15); color: var(--text-muted); border: 1px solid var(--border-med); }
+
+    /* Buttons */
+    .btn {
+      background: var(--surface);
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      padding: 9px 20px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.15s, color 0.15s;
+      border-radius: 2px;
+    }
+    .btn:hover { background: var(--gold); color: var(--bg); }
+    .btn-green { border-color: var(--green); color: var(--green); }
+    .btn-green:hover { background: var(--green); color: var(--bg); }
+    .btn-sm { font-size: 0.74rem; padding: 5px 12px; }
+
+    /* Progress bar */
+    .progress-track {
+      background: var(--border);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1.5s ease-out;
+    }
+
+    /* Colour helpers */
+    .c-green  { color: var(--green); }
+    .c-gold   { color: var(--gold); }
+    .c-red    { color: var(--red); }
+    .c-dim    { color: var(--text-dim); }
+    .c-muted  { color: var(--text-muted); }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-brand">AGENTILIZER &gt;</a>
+    <div class="nav-links">
+      <a href="/">DASHBOARD</a>
+      <a href="/audit/">NEW AUDIT</a>
+      <a href="/reports/">BATCH REPORTS</a>
+      <a href="/api/" class="nav-api">API DOCS</a>
+      <a href="/admin/" class="nav-admin">ADMIN</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">&#9685; LIGHT</button>
+  </nav>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div style="
+    background:{% if message.tags == 'success' %}var(--green-bg){% else %}var(--red-bg){% endif %};
+    border-bottom:1px solid {% if message.tags == 'success' %}var(--green){% else %}var(--red){% endif %};
+    color:{% if message.tags == 'success' %}var(--green){% else %}var(--red){% endif %};
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.78rem;
+    padding:10px 28px;
+    letter-spacing:0.04em;
+  ">
+    {% if message.tags == 'success' %}✓{% else %}⚠{% endif %} {{ message }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    AGENTILIZER v1.0 // EDE-AUDITOR + AI-BOM // Leeds Beckett University 2026
+  </footer>
+
+  <script>
+    function toggleTheme() {
+      var html = document.documentElement;
+      var isLight = html.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        html.removeAttribute('data-theme');
+        localStorage.setItem('agentilizer-theme', 'dark');
+      } else {
+        html.setAttribute('data-theme', 'light');
+        localStorage.setItem('agentilizer-theme', 'light');
+      }
+      updateToggleLabel();
+    }
+    function updateToggleLabel() {
+      var btn = document.getElementById('theme-toggle');
+      if (!btn) return;
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      btn.textContent = isLight ? '☀ DARK' : '⚅ LIGHT';
+    }
+    document.addEventListener('DOMContentLoaded', updateToggleLabel);
+  </script>
+</body>
+</html>

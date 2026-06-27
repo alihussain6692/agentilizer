@@ -1,0 +1,51 @@
+{
+  "template_id": 522,
+  "template_name": "Send an email using Mailgun",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "On clicking 'execute'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {},
+      "typeVersion": 1
+    },
+    {
+      "name": "Mailgun",
+      "type": "n8n-nodes-base.mailgun",
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "text": "This is a test message ",
+        "subject": "This is a Subject",
+        "toEmail": "user@example.com",
+        "fromEmail": "user@example.com"
+      },
+      "credentials": {
+        "mailgunApi": {
+          "id": "credential-id",
+          "name": "mailgunApi Credential"
+        }
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "On clicking 'execute'": {
+      "main": [
+        [
+          {
+            "node": "Mailgun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

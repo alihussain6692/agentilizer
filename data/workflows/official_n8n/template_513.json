@@ -1,0 +1,27 @@
+{
+  "template_id": 513,
+  "template_name": "Receive messages for an ActiveMQ queue",
+  "source": "n8n_official_api",
+  "id": "135",
+  "name": "Receive messages for an ActiveMQ queue via AMQP Trigger",
+  "nodes": [
+    {
+      "name": "AMQP Trigger",
+      "type": "n8n-nodes-base.amqpTrigger",
+      "position": [
+        650,
+        200
+      ],
+      "parameters": {
+        "sink": ""
+      },
+      "credentials": {
+        "amqp": ""
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "connections": {}
+}

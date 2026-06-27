@@ -1,0 +1,23 @@
+{
+  "template_id": 521,
+  "template_name": "Receive updates on emails sent via Mailjet",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "Mailjet Trigger",
+      "type": "n8n-nodes-base.mailjetTrigger",
+      "position": [
+        530,
+        400
+      ],
+      "parameters": {
+        "event": "sent"
+      },
+      "credentials": {
+        "mailjetEmailApi": "mailjet creds"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {}
+}

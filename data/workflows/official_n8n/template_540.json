@@ -1,0 +1,27 @@
+{
+  "template_id": 540,
+  "template_name": "Receive updates for Calendly events",
+  "source": "n8n_official_api",
+  "nodes": [
+    {
+      "name": "Calendly Trigger",
+      "type": "n8n-nodes-base.calendlyTrigger",
+      "position": [
+        880,
+        400
+      ],
+      "webhookId": "9d13bcea-781a-4462-a9af-44bfb1fb6891",
+      "parameters": {
+        "events": [
+          "invitee.created",
+          "invitee.canceled"
+        ]
+      },
+      "credentials": {
+        "calendlyApi": "calendly_creds"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {}
+}

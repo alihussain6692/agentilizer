@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Django
+*.log
+db.sqlite3
+**/media/
+**/media/uploads/
+/staticfiles/
+local_settings.py
+.env
+*.env
+
+# Large / third-party data (not redistributed)
+data/Unique_Dataset/
+data/raw/
+data/workflows/
+data/n8n/
+*.zip
+
+# Research databases (published as a GitHub Release asset, not in-repo)
+data/ede_research.db
+data/ede_research_v2.db
+
+# Internal / scratch
+claude.md
+CLAUDE.md
+check_v2.py
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
